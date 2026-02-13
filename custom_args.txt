@@ -1,0 +1,16 @@
+. Custom launch options for scrcpy Launcher
+. Format: Label = --arg1 --arg2 ...
+. Each line becomes a checkbox in the Launch section.
+. Blank lines and lines starting with . are ignored.
+.
+. Use {default_value} to add an editable text box next to the checkbox.
+. The value in the text box replaces the {placeholder} at launch time.
+.
+. Examples (uncomment to use):
+. No Audio = --no-audio
+. Camera Mode = --video-source=camera
+Low Latency = --video-buffer={50} --audio-buffer={50}
+. Borderless = --window-borderless
+. Fullscreen = --fullscreen
+. Max FPS = --max-fps={60}
+. Crop = --crop={1080:960:0:0}
