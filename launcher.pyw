@@ -12,16 +12,84 @@ from tkinter import filedialog, messagebox, ttk
 
 # When running as a PyInstaller frozen exe, sys._MEIPASS is the temp extraction
 # dir (for bundled data like the theme), while the exe itself lives elsewhere.
-# SCRIPT_DIR = directory containing the exe / .pyw (where .bat/.sh scripts live)
-# DATA_DIR   = bundled data root (same as SCRIPT_DIR when running from source)
+# SCRIPT_DIR  = where .bat/.sh scripts and config files live
+# DATA_DIR    = bundled data root (theme, icon)
+# OUTPUT_DIR  = where user-facing output goes (Recordings/, Screenshots/)
 if getattr(sys, "frozen", False):
-    SCRIPT_DIR = os.path.dirname(sys.executable)
+    _exe_dir = os.path.dirname(sys.executable)
+    if sys.platform == "darwin" and _exe_dir.endswith(".app/Contents/MacOS"):
+        # macOS .app: scripts/configs bundled in Contents/Resources/,
+        # user output (Recordings/, Screenshots/) goes alongside the .app.
+        SCRIPT_DIR = os.path.join(os.path.dirname(_exe_dir), "Resources")
+        OUTPUT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(_exe_dir)))
+    else:
+        SCRIPT_DIR = _exe_dir
+        OUTPUT_DIR = _exe_dir
     DATA_DIR = sys._MEIPASS
 else:
     SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
     DATA_DIR = SCRIPT_DIR
+    OUTPUT_DIR = SCRIPT_DIR
 
 IS_WINDOWS = sys.platform == "win32"
+
+# macOS .app bundles don't inherit the user's shell PATH, so adb/scrcpy may not
+# be found. Source env.sh if present; otherwise add well-known locations.
+
+def _source_env_file(path):
+    """Source a bash file and return the resulting PATH, or None on failure."""
+    try:
+        result = subprocess.run(
+            ["bash", "-c", f'source "{path}" && printf "%s" "$PATH"'],
+            capture_output=True, text=True, timeout=5,
+        )
+        if result.returncode == 0:
+            return result.stdout
+    except Exception:
+        pass
+    return None
+
+
+def _apply_fallback_paths():
+    """Add well-known SDK/tool locations to PATH."""
+    extra = [
+        os.path.join(os.path.expanduser("~"), "Library", "Android", "sdk", "platform-tools"),
+        "/opt/homebrew/bin",
+        "/usr/local/bin",
+        SCRIPT_DIR,
+    ]
+    current = os.environ.get("PATH", "")
+    new = [p for p in extra if os.path.isdir(p) and p not in current]
+    if new:
+        os.environ["PATH"] = current + ":" + ":".join(new)
+
+
+def _env_file_has_active_lines(path):
+    """Return True if the file has any non-blank, non-comment lines."""
+    try:
+        with open(path) as f:
+            for line in f:
+                stripped = line.strip()
+                if stripped and not stripped.startswith("#"):
+                    return True
+    except Exception:
+        pass
+    return False
+
+
+def _load_env_path():
+    """Load PATH from env.sh if it has active lines; otherwise use fallbacks."""
+    env_file = os.path.join(SCRIPT_DIR, "env.sh")
+    if os.path.isfile(env_file) and _env_file_has_active_lines(env_file):
+        sourced = _source_env_file(env_file)
+        if sourced:
+            os.environ["PATH"] = sourced
+            return
+    _apply_fallback_paths()
+
+
+if not IS_WINDOWS:
+    _load_env_path()
 
 # Only pass creationflags on Windows; ignored on Mac/Linux
 _POPEN_KWARGS = {"creationflags": subprocess.CREATE_NO_WINDOW} if IS_WINDOWS else {}
@@ -75,7 +143,7 @@ def label_for_script(filename):
     return label
 
 
-IGNORED_SCRIPTS = {"build.bat", "build.sh"}
+IGNORED_SCRIPTS = {"build.bat", "build.sh", "env.sh"}
 CUSTOM_ARGS_FILE = "custom_args.txt"
 
 
@@ -389,7 +457,7 @@ class LauncherApp:
         if serial is False:
             return
 
-        screenshot_dir = os.path.join(SCRIPT_DIR, "Screenshots")
+        screenshot_dir = os.path.join(OUTPUT_DIR, "Screenshots")
         os.makedirs(screenshot_dir, exist_ok=True)
 
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -856,7 +924,7 @@ class LauncherApp:
 
         try:
             proc = subprocess.Popen(
-                cmd, cwd=SCRIPT_DIR,
+                cmd, cwd=OUTPUT_DIR,
                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                 text=True, **_POPEN_KWARGS,
             )

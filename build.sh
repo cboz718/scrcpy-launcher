@@ -27,16 +27,18 @@ pyinstaller --onefile --noconsole \
     launcher.pyw
 
 echo
+echo "Bundling scripts and configs into .app..."
+RESOURCES="dist/scrcpy Launcher.app/Contents/Resources"
+cp custom_args.txt env.sh "$RESOURCES/"
+cp mirror.sh record_video.sh tcpip.sh "$RESOURCES/"
+
+echo
 echo "Creating distribution zip..."
 cd dist
-zip -j scrcpy-launcher-mac.zip "scrcpy Launcher" \
-    ../custom_args.txt \
-    ../mirror.bat ../mirror.sh \
-    ../record_video.bat ../record_video.sh \
-    ../tcpip.bat ../tcpip.sh
+zip -r scrcpy-launcher-mac.zip "scrcpy Launcher.app"
 cd ..
 
 echo
 echo "Build complete!"
-echo "  Executable: dist/scrcpy Launcher"
-echo "  Zip:        dist/scrcpy-launcher-mac.zip"
+echo "  App:  dist/scrcpy Launcher.app"
+echo "  Zip:  dist/scrcpy-launcher-mac.zip"

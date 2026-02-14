@@ -39,6 +39,11 @@ A cross-platform GUI for launching [scrcpy](https://github.com/Genymobile/scrcpy
 
 - **scrcpy** and **adb** on your PATH or in the same directory as the launcher
   - Download scrcpy from [github.com/Genymobile/scrcpy](https://github.com/Genymobile/scrcpy)
+  - On macOS, the launcher checks `env.sh` first (see [Environment Configuration](#environment-configuration) below), then falls back to these common locations:
+    - `~/Library/Android/sdk/platform-tools` (Android SDK default)
+    - `/opt/homebrew/bin` (Homebrew on Apple Silicon)
+    - `/usr/local/bin` (Homebrew on Intel Macs)
+    - The launcher's own directory (portable setups)
 - An Android device connected via USB or paired for wireless debugging
 
 If running from source (instead of the standalone executable):
@@ -64,6 +69,23 @@ If running from source (instead of the standalone executable):
    - **Mac/Linux:** `python3 launcher.pyw`
 
 3. Select a device, check any options you want, and click a launch button.
+
+## Environment Configuration
+
+On macOS, apps launched from Finder don't inherit your shell's PATH, so `adb` and `scrcpy` may not be found. The launcher ships with an `env.sh` file where you can configure the PATH.
+
+Edit `env.sh` and uncomment or add `export PATH=` lines:
+
+```bash
+# Uncomment the lines you need:
+export PATH="$PATH:$HOME/Library/Android/sdk/platform-tools"  # Android SDK
+export PATH="$PATH:/opt/homebrew/bin"                          # Homebrew (Apple Silicon)
+
+# Or add a custom path:
+export PATH="$PATH:/path/to/your/scrcpy"
+```
+
+The file is sourced with bash at startup. If `env.sh` is missing, empty, or all lines are commented out, the launcher falls back to checking well-known locations automatically.
 
 ## Custom Launch Options
 
@@ -98,8 +120,8 @@ To package the launcher as a standalone executable (no Python required to run):
    - **Mac:** `bash build.sh`
 
 3. Output in `dist/`:
-   - Standalone executable
-   - Distribution zip (includes executable, scripts, and `custom_args.txt`)
+   - **Windows:** Standalone executable + distribution zip with scripts and configs
+   - **Mac:** Self-contained `.app` bundle (scripts and configs bundled inside `Contents/Resources/`)
 
 ## Included Scripts
 
@@ -111,7 +133,9 @@ To package the launcher as a standalone executable (no Python required to run):
 
 ### Adding Your Own Scripts
 
-Drop a `.bat` (Windows) or `.sh` (Mac/Linux) file into the directory. The launcher picks it up automatically and creates a button with a label derived from the filename.
+Drop a `.bat` (Windows) or `.sh` (Mac/Linux) file into the script directory. The launcher picks it up automatically and creates a button with a label derived from the filename.
+
+On macOS with the `.app` bundle, scripts live inside the app at `Contents/Resources/` — right-click the app and choose **Show Package Contents** to add or edit scripts and config files.
 
 For example, `camera_mirror.sh` becomes a button labeled **Camera Mirror**.
 
@@ -134,6 +158,7 @@ scrcpy --your-flags-here "$@"
 ```
 .
 ├── launcher.pyw        # GUI application (Python/tkinter)
+├── env.sh              # PATH configuration for macOS/Linux
 ├── custom_args.txt     # User-defined launch option checkboxes
 ├── build.bat           # Windows build script
 ├── build.sh            # macOS build script

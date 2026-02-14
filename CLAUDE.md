@@ -23,10 +23,11 @@ pip install pyinstaller pillow
 ## Architecture
 
 - **launcher.pyw** — Tkinter GUI (single file, no external deps beyond stdlib). Uses `.pyw` to suppress console window on Windows.
-- **SCRIPT_DIR vs DATA_DIR** — When frozen (PyInstaller exe), `SCRIPT_DIR` = exe's directory (for .bat/.sh scripts), `DATA_DIR` = `sys._MEIPASS` temp dir (for bundled azure-theme and icon). When running from source, both point to the same directory.
+- **SCRIPT_DIR vs DATA_DIR vs OUTPUT_DIR** — When frozen on Windows, `SCRIPT_DIR` = exe's directory. On macOS `.app`, `SCRIPT_DIR` = `Contents/Resources/` inside the `.app` (scripts and configs bundled there by `build.sh`), `OUTPUT_DIR` = directory containing the `.app` (for Recordings/, Screenshots/). `DATA_DIR` = `sys._MEIPASS` temp dir (azure-theme, icon). When running from source, all three point to the same directory.
 - **azure-theme/** — [Azure ttk theme](https://github.com/rdbende/Azure-ttk-theme) (dark mode), falls back to `clam` if missing. Loaded via `root.tk.call("source", azure_tcl)`.
 - **build_icon.py** — Generates `launcher.ico` from the phone emoji using Pillow + Segoe UI Emoji font.
 - **build.bat** — Runs `build_icon.py` then PyInstaller with `--onefile --noconsole --add-data azure-theme`.
+- **env.sh** — Optional PATH configuration for macOS/Linux. Sourced with bash at startup; if absent or all-commented, launcher falls back to hardcoded well-known paths.
 - **Scripts** — Wrapper scripts that call scrcpy with preset flags. All accept extra args via passthrough (`%*` on bat, `"$@"` on sh). Recordings save to `./Recordings/`.
 
 ## Scripts

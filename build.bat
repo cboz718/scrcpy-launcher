@@ -21,7 +21,7 @@ if errorlevel 1 (
 
 echo.
 echo Creating distribution zip...
-powershell -NoProfile -Command "if (Test-Path 'dist\scrcpy-launcher.zip') { Remove-Item 'dist\scrcpy-launcher.zip' }; $files = @('dist\scrcpy Launcher.exe', 'custom_args.txt', 'mirror.bat', 'mirror.sh', 'record_video.bat', 'record_video.sh', 'tcpip.bat', 'tcpip.sh'); Compress-Archive -Path $files -DestinationPath 'dist\scrcpy-launcher.zip'"
+powershell -NoProfile -Command "if (Test-Path 'dist\scrcpy-launcher-windows.zip') { Remove-Item 'dist\scrcpy-launcher-windows.zip' }; $files = @('dist\scrcpy Launcher.exe', 'custom_args.txt', 'mirror.bat', 'mirror.sh', 'record_video.bat', 'record_video.sh', 'tcpip.bat', 'tcpip.sh'); Compress-Archive -Path $files -DestinationPath 'dist\scrcpy-launcher-windows.zip'"
 if errorlevel 1 (
     echo Zip creation failed.
     pause
@@ -31,5 +31,5 @@ if errorlevel 1 (
 echo.
 echo Build complete!
 echo   Executable: dist\scrcpy Launcher.exe
-echo   Zip:        dist\scrcpy-launcher.zip
+echo   Zip:        dist\scrcpy-launcher-windows.zip
 pause
