@@ -309,6 +309,11 @@ class LauncherApp:
         ttk.Button(util_row2, text="Force Stop App", width=14, command=self.force_stop_app).pack(side="left", padx=3, pady=2)
         ttk.Button(util_row2, text="Clear App Data", width=14, command=self.clear_app_data).pack(side="left", padx=3, pady=2)
 
+        util_row3 = ttk.Frame(util_frame)
+        util_row3.pack(fill="x")
+        ttk.Button(util_row3, text="Nav Buttons On", width=14, command=self.enable_nav_buttons).pack(side="left", padx=3, pady=2)
+        ttk.Button(util_row3, text="Nav Buttons Off", width=14, command=self.disable_nav_buttons).pack(side="left", padx=3, pady=2)
+
         # --- Output frame ---
         output_frame = ttk.LabelFrame(root, text="Output", padding=(8, 4))
         output_frame.pack(fill="both", padx=10, pady=(4, 10), expand=True)
@@ -866,6 +871,46 @@ class LauncherApp:
             self.root.after(0, self.refresh_devices)
 
         threading.Thread(target=_run, daemon=True).start()
+
+    def _set_nav_overlay(self, enable_three_button):
+        """Toggle between 3-button and gesture navigation via overlays."""
+        serial = self._get_selected_serial()
+        if serial is False:
+            return
+        target = serial or self.devices[0][0]
+
+        if enable_three_button:
+            disable = "com.android.internal.systemui.navbar.gestural"
+            enable = "com.android.internal.systemui.navbar.threebutton"
+            label = "3-button navigation"
+        else:
+            disable = "com.android.internal.systemui.navbar.threebutton"
+            enable = "com.android.internal.systemui.navbar.gestural"
+            label = "gesture navigation"
+
+        self._append_log(f">>> Switching to {label}\n")
+
+        def _run():
+            try:
+                for action, overlay in [("disable", disable), ("enable", enable)]:
+                    result = subprocess.run(
+                        ["adb", "-s", target, "shell", "cmd", "overlay", action, overlay],
+                        capture_output=True, text=True, timeout=10, **_POPEN_KWARGS,
+                    )
+                    output = (result.stdout + result.stderr).strip()
+                    if output:
+                        self.root.after(0, self._append_log, f"{output}\n")
+                self.root.after(0, self._append_log, f"Switched to {label}\n\n")
+            except Exception as e:
+                self.root.after(0, self._append_log, f"Error: {e}\n\n")
+
+        threading.Thread(target=_run, daemon=True).start()
+
+    def enable_nav_buttons(self):
+        self._set_nav_overlay(True)
+
+    def disable_nav_buttons(self):
+        self._set_nav_overlay(False)
 
     def _get_launch_options(self):
         """Build extra args list from checked launch options."""
